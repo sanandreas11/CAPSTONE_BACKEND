@@ -17,9 +17,17 @@ public class Prenotazione {
 
     private LocalDateTime dataOra;
 
+    @Column(nullable = false)
+    private boolean pagato = false;
+
+    private LocalDateTime dataPagamento;
+
     @ManyToOne
     private Utente utente;
 
     @ManyToOne
     private Massaggio massaggio;
+
+    @Column(nullable = false)
+    private boolean annullata = false;
 }

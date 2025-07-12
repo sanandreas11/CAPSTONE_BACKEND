@@ -1,5 +1,8 @@
 package enumerations;
 
+
 public enum Ruolo {
-    CLIENTE, ADMIN
+    CLIENTE,
+    ADMIN,
+    MASSAGGIATORE
 }
