@@ -4,11 +4,13 @@ import dtos.MassaggioDTO;
 import entities.Massaggio;
 import entities.Utente;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import repositories.MassaggioRepository;
 import repositories.UtenteRepository;
+import specifications.MassaggioSpecifications;
 
 import java.util.List;
 
@@ -69,5 +71,31 @@ public class MassaggioController {
     public ResponseEntity<String> rimuoviMassaggio(@PathVariable Long id) {
         massaggioRepo.deleteById(id);
         return ResponseEntity.ok("Massaggio rimosso");
+    }
+
+    @GetMapping
+    public ResponseEntity<List<Massaggio>> getFilteredMassaggi(
+            @RequestParam(required = false) Double prezzoMin,
+            @RequestParam(required = false) Double prezzoMax,
+            @RequestParam(required = false) Integer durataMin,
+            @RequestParam(required = false) Integer durataMax
+    ) {
+        Specification<Massaggio> spec = (root, query, cb) -> cb.conjunction();
+
+        if (prezzoMin != null) {
+            spec = spec.and(MassaggioSpecifications.hasPrezzoMinimo(prezzoMin));
+        }
+        if (prezzoMax != null) {
+            spec = spec.and(MassaggioSpecifications.hasPrezzoMassimo(prezzoMax));
+        }
+        if (durataMin != null) {
+            spec = spec.and(MassaggioSpecifications.hasDurataMinima(durataMin));
+        }
+        if (durataMax != null) {
+            spec = spec.and(MassaggioSpecifications.hasDurataMassima(durataMax));
+        }
+
+        List<Massaggio> risultati = massaggioRepo.findAll(spec);
+        return ResponseEntity.ok(risultati);
     }
 }
