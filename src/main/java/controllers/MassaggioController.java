@@ -26,7 +26,7 @@ public class MassaggioController {
         return massaggioRepo.findAll();
     }
 
-    // ✅ Crea un massaggio e assegna un massaggiatore (solo ADMIN)
+    // ✅ Crea un nuovo massaggio e lo assegna a un massaggiatore (solo admin)
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> creaMassaggio(@RequestBody MassaggioDTO dto) {
@@ -44,7 +44,7 @@ public class MassaggioController {
         return ResponseEntity.ok("Massaggio creato e assegnato al massaggiatore.");
     }
 
-
+    // ✅ Aggiorna un massaggio (solo admin)
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> aggiornaMassaggio(@PathVariable Long id, @RequestBody MassaggioDTO dto) {
@@ -63,14 +63,9 @@ public class MassaggioController {
         return ResponseEntity.ok("Massaggio aggiornato con successo.");
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping
-    public ResponseEntity<Massaggio> aggiungiMassaggio(@RequestBody Massaggio m) {
-        return ResponseEntity.ok(massaggioRepo.save(m));
-    }
-
-    @PreAuthorize("hasRole('ADMIN')")
+    // ✅ Elimina un massaggio (solo admin)
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> rimuoviMassaggio(@PathVariable Long id) {
         massaggioRepo.deleteById(id);
         return ResponseEntity.ok("Massaggio rimosso");
