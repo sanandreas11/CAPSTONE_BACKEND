@@ -63,4 +63,16 @@ public class MassaggioController {
         return ResponseEntity.ok("Massaggio aggiornato con successo.");
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping
+    public ResponseEntity<Massaggio> aggiungiMassaggio(@RequestBody Massaggio m) {
+        return ResponseEntity.ok(massaggioRepo.save(m));
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> rimuoviMassaggio(@PathVariable Long id) {
+        massaggioRepo.deleteById(id);
+        return ResponseEntity.ok("Massaggio rimosso");
+    }
 }

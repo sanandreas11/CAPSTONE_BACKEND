@@ -15,6 +15,7 @@ import java.security.Principal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/prenotazioni")
@@ -142,4 +143,19 @@ public class PrenotazioneController {
                 .collect(Collectors.toList());
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{id}/annulla-by-admin")
+    public ResponseEntity<String> annullaPrenotazioneByAdmin(@PathVariable Long id) {
+        Prenotazione prenotazione = prenotazioneRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Prenotazione non trovata"));
+
+        if (prenotazione.isAnnullata()) {
+            return ResponseEntity.badRequest().body("Prenotazione già annullata");
+        }
+
+        prenotazione.setAnnullata(true);
+        prenotazioneRepo.save(prenotazione);
+
+        return ResponseEntity.ok("Prenotazione annullata con successo dall'admin");
+    }
 }
