@@ -22,13 +22,7 @@ public class MassaggioController {
     private final MassaggioRepository massaggioRepo;
     private final UtenteRepository utenteRepo;
 
-    // ✅ Recupera tutti i massaggi (accessibile a tutti)
-    @GetMapping
-    public List<Massaggio> getAllMassaggi() {
-        return massaggioRepo.findAll();
-    }
 
-    // ✅ Crea un nuovo massaggio e lo assegna a un massaggiatore (solo admin)
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> creaMassaggio(@RequestBody MassaggioDTO dto) {
@@ -46,7 +40,6 @@ public class MassaggioController {
         return ResponseEntity.ok("Massaggio creato e assegnato al massaggiatore.");
     }
 
-    // ✅ Aggiorna un massaggio (solo admin)
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> aggiornaMassaggio(@PathVariable Long id, @RequestBody MassaggioDTO dto) {
@@ -65,7 +58,6 @@ public class MassaggioController {
         return ResponseEntity.ok("Massaggio aggiornato con successo.");
     }
 
-    // ✅ Elimina un massaggio (solo admin)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> rimuoviMassaggio(@PathVariable Long id) {
@@ -74,7 +66,7 @@ public class MassaggioController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Massaggio>> getFilteredMassaggi(
+    public ResponseEntity<List<Massaggio>> getAllOrFilteredMassaggi(
             @RequestParam(required = false) Double prezzoMin,
             @RequestParam(required = false) Double prezzoMax,
             @RequestParam(required = false) Integer durataMin,
@@ -82,18 +74,10 @@ public class MassaggioController {
     ) {
         Specification<Massaggio> spec = (root, query, cb) -> cb.conjunction();
 
-        if (prezzoMin != null) {
-            spec = spec.and(MassaggioSpecifications.hasPrezzoMinimo(prezzoMin));
-        }
-        if (prezzoMax != null) {
-            spec = spec.and(MassaggioSpecifications.hasPrezzoMassimo(prezzoMax));
-        }
-        if (durataMin != null) {
-            spec = spec.and(MassaggioSpecifications.hasDurataMinima(durataMin));
-        }
-        if (durataMax != null) {
-            spec = spec.and(MassaggioSpecifications.hasDurataMassima(durataMax));
-        }
+        if (prezzoMin != null) spec = spec.and(MassaggioSpecifications.hasPrezzoMinimo(prezzoMin));
+        if (prezzoMax != null) spec = spec.and(MassaggioSpecifications.hasPrezzoMassimo(prezzoMax));
+        if (durataMin != null) spec = spec.and(MassaggioSpecifications.hasDurataMinima(durataMin));
+        if (durataMax != null) spec = spec.and(MassaggioSpecifications.hasDurataMassima(durataMax));
 
         List<Massaggio> risultati = massaggioRepo.findAll(spec);
         return ResponseEntity.ok(risultati);

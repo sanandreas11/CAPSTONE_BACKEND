@@ -34,7 +34,7 @@ public class EmailService {
     }
 
     public void sendPasswordResetEmail(String to, String nomeCompleto, String token) {
-        String resetLink = "http://localhost:4200/reset-password?token=" + token; // frontend
+        String resetLink = "http://localhost:5173/reset-password?token=" + token;
         String subject = "Recupero password - CAPSTONE";
         String body = """
             Ciao %s,

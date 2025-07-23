@@ -137,7 +137,6 @@ public class PrenotazioneController {
                         giorno.plusDays(1).atStartOfDay()
                 );
 
-        // Ritorna gli orari occupati nel formato "HH:mm"
         return prenotazioni.stream()
                 .map(p -> p.getDataOra().toLocalTime().toString().substring(0, 5))
                 .collect(Collectors.toList());

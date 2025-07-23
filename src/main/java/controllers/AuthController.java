@@ -1,111 +1,145 @@
 package controllers;
 
-import java.time.LocalDateTime;
-import java.util.UUID;
-import auth.AuthResponse;
-import auth.CustomUserDetailsService;
+import auth.ResetPasswordRequest;
+import entities.Utente;
 import auth.LoginRequest;
 import auth.RegisterRequest;
-import entities.PasswordResetToken;
-import entities.Utente;
-import enumerations.Ruolo;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.*;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
-import repositories.PasswordResetTokenRepository;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpStatus;
 import repositories.UtenteRepository;
 import security.JwtUtil;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.*;
 import services.EmailService;
 
+import java.util.Map;
+
+@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 @RestController
 @RequestMapping("/auth")
-@RequiredArgsConstructor
 public class AuthController {
 
-    private final UtenteRepository utenteRepository;
-    private final AuthenticationManager authManager;
-    private final PasswordEncoder passwordEncoder;
-    private final CustomUserDetailsService userDetailsService;
-    private final JwtUtil jwtUtil;
-    private final EmailService emailService;
-    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    @Autowired
+    private UtenteRepository utenteRepo;
 
-    // ✅ REGISTRAZIONE
-    @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@RequestBody @Valid RegisterRequest request) {
-        // Imposta CLIENTE come default
-        Ruolo ruolo = request.getRuolo() != null ? request.getRuolo() : Ruolo.CLIENTE;
+    @Autowired
+    private JwtUtil jwtUtil;
 
-        Utente utente = Utente.builder()
-                .nome(request.getNome())
-                .cognome(request.getCognome())
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .ruolo(ruolo)
-                .build();
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
-        utenteRepository.save(utente);
-        String token = jwtUtil.generateToken(utente.getEmail());
+    @Autowired
+    private EmailService emailService;
 
-        // ✅ Invio email di benvenuto
-        String nomeCompleto = utente.getNome() + " " + utente.getCognome();
-        emailService.sendRegistrationEmail(utente.getEmail(), nomeCompleto);
-
-        return ResponseEntity.ok(new AuthResponse(token));
-    }
-
-    // ✅ LOGIN
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
-        authManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getEmail(), request.getPassword())
-        );
-
-        UserDetails userDetails = userDetailsService.loadUserByUsername(request.getEmail());
-        String token = jwtUtil.generateToken(userDetails.getUsername());
-
-        return ResponseEntity.ok(new AuthResponse(token));
-    }
-
-    @PostMapping("/forgot-password")
-    public ResponseEntity<String> forgotPassword(@RequestParam String email) {
-        Utente utente = utenteRepository.findByEmail(email)
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+        Utente utente = utenteRepo.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Utente non trovato"));
 
-        passwordResetTokenRepository.deleteByUtente(utente); // rimuove token precedenti
+        if (!passwordEncoder.matches(request.getPassword(), utente.getPassword())) {
+            return ResponseEntity.badRequest().body("Password errata");
+        }
 
-        String token = UUID.randomUUID().toString();
-        PasswordResetToken resetToken = PasswordResetToken.builder()
-                .token(token)
-                .scadenza(LocalDateTime.now().plusMinutes(30))
-                .utente(utente)
-                .build();
+        String token = jwtUtil.generateToken(utente);
+        return ResponseEntity.ok(Map.of("token", token, "role", utente.getRuolo().name()));
+    }
 
-        passwordResetTokenRepository.save(resetToken);
-        emailService.sendPasswordResetEmail(utente.getEmail(), utente.getNome() + " " + utente.getCognome(), token);
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
+        if (utenteRepo.existsByEmail(request.getEmail())) {
+            return ResponseEntity.badRequest().body("Email già in uso");
+        }
 
-        return ResponseEntity.ok("Email per il reset inviata con successo.");
+        Utente utente = new Utente();
+        utente.setNome(request.getNome());
+        utente.setCognome(request.getCognome());
+        utente.setEmail(request.getEmail());
+
+        utente.setPassword(passwordEncoder.encode(request.getPassword()));
+
+        utente.setRuolo(request.getRuolo());
+        utenteRepo.save(utente);
+        return ResponseEntity.ok("Registrazione completata");
+    }
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refreshToken(HttpServletRequest request, HttpServletResponse response) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Refresh token mancante");
+        }
+
+        String refreshToken = null;
+        for (Cookie cookie : cookies) {
+            if ("refreshToken".equals(cookie.getName())) {
+                refreshToken = cookie.getValue();
+            }
+        }
+
+        if (refreshToken == null || !jwtUtil.validateToken(refreshToken)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Refresh token non valido");
+        }
+
+        String email = jwtUtil.extractUsername(refreshToken);
+        Utente utente = utenteRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Utente non trovato"));
+
+        String newAccessToken = jwtUtil.generateToken(utente);
+
+        return ResponseEntity.ok(Map.of(
+                "token", newAccessToken,
+                "role", utente.getRuolo().name()
+        ));
+    }
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestParam String email) {
+        Utente utente = utenteRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Email non registrata"));
+
+        String token = jwtUtil.generateToken(utente);
+        emailService.sendPasswordResetEmail(
+                utente.getEmail(),
+                utente.getNome() + " " + utente.getCognome(),
+                token
+        );
+
+        return ResponseEntity.ok("Email per il reset della password inviata");
     }
 
     @PostMapping("/reset-password")
-    public ResponseEntity<String> resetPassword(@RequestParam String token, @RequestParam String nuovaPassword) {
-        PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
-                .orElseThrow(() -> new RuntimeException("Token non valido"));
-
-        if (resetToken.getScadenza().isBefore(LocalDateTime.now())) {
-            return ResponseEntity.badRequest().body("Il token è scaduto.");
+    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
+        String token = request.getToken();
+        if (!jwtUtil.validateToken(token)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token non valido o scaduto");
         }
 
-        Utente utente = resetToken.getUtente();
-        utente.setPassword(passwordEncoder.encode(nuovaPassword));
-        utenteRepository.save(utente);
-        passwordResetTokenRepository.delete(resetToken);
+        String email = jwtUtil.extractUsername(token);
+        Utente utente = utenteRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Utente non trovato"));
 
-        return ResponseEntity.ok("Password aggiornata con successo.");
+        utente.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        utenteRepo.save(utente);
+
+        return ResponseEntity.ok("Password aggiornata");
+    }
+
+    @PostMapping("/password-reset/perform")
+    public ResponseEntity<?> performReset(@RequestBody ResetPasswordRequest request) {
+        String token = request.getToken();
+        if (!jwtUtil.validateToken(token)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token non valido o scaduto");
+        }
+
+        String email = jwtUtil.extractUsername(token);
+        Utente utente = utenteRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Utente non trovato"));
+
+        utente.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        utenteRepo.save(utente);
+
+        return ResponseEntity.ok("Password aggiornata");
     }
 }
