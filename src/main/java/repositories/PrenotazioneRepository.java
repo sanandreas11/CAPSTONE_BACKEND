@@ -23,5 +23,9 @@ List<Prenotazione> findByMassaggio_Massaggiatore(Utente massaggiatore);
             LocalDateTime start,
             LocalDateTime end
     );
+    List<Prenotazione> findByMassaggio_Massaggiatore_IdAndDataOraAndAnnullataFalse(
+            Long massaggiatoreId,
+            LocalDateTime dataOra
+    );
 }
 

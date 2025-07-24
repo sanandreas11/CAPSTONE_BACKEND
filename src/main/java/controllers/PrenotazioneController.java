@@ -33,6 +33,17 @@ public class PrenotazioneController {
         Utente utente = utenteRepo.findByEmail(principal.getName()).orElseThrow();
         Massaggio massaggio = massaggioRepo.findById(dto.getMassaggioId()).orElseThrow();
 
+        boolean occupato = !prenotazioneRepo
+                .findByMassaggio_Massaggiatore_IdAndDataOraAndAnnullataFalse(
+                        massaggio.getMassaggiatore().getId(),
+                        dto.getDataOra()
+                ).isEmpty();
+
+        if (occupato) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("Il massaggiatore è già occupato in quella fascia oraria.");
+        }
+
         Prenotazione p = Prenotazione.builder()
                 .dataOra(dto.getDataOra())
                 .massaggio(massaggio)
@@ -40,7 +51,7 @@ public class PrenotazioneController {
                 .build();
 
         prenotazioneRepo.save(p);
-        return ResponseEntity.ok("Prenotazione salvata");
+        return ResponseEntity.ok("Prenotazione salvata con successo");
     }
 
     @GetMapping
