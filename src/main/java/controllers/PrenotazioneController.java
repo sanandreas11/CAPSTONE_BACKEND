@@ -61,6 +61,12 @@ public class PrenotazioneController {
         return prenotazioneRepo.findByUtente(utente);
     }
 
+    @GetMapping("/tutte")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<Prenotazione> getTuttePrenotazioni() {
+        return prenotazioneRepo.findAll();
+    }
+
     @GetMapping("/assegnate")
     @PreAuthorize("hasRole('MASSAGGIATORE')")
     public ResponseEntity<List<Prenotazione>> getPrenotazioniAssegnate(Principal principal) {

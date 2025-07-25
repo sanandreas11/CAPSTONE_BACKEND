@@ -17,7 +17,7 @@ import java.util.List;
 public class UtenteController {
 
     private final UtenteRepository utenteRepository;
-    private final PasswordEncoder passwordEncoder; // ✅ aggiunto!
+    private final PasswordEncoder passwordEncoder;
 
     @GetMapping("/massaggiatori")
     @PreAuthorize("hasAnyRole('ADMIN', 'CLIENTE')")
