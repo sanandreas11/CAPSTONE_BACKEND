@@ -1,5 +1,5 @@
 # Usa un'immagine JDK come base
-FROM eclipse-temurin:17-jdk-alpine
+FROM eclipse-temurin:21-jdk
 
 # Crea una directory per l'app
 WORKDIR /app
