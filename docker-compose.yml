@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    restart: always
+    container_name: capstone_postgres
+    environment:
+      POSTGRES_DB: capstone-db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: MLGproskills1!
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build: .
+    restart: always
+    container_name: capstone_backend
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/capstone-db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: MLGproskills1!
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      JWT_SECRET: V3ryS3cretJwtKeyForAuthenticat10n123!
+      JWT_EXPIRATION: 36000000
+      STRIPE_SECRET_KEY: pk_test_51RvvekHUGYthHqjoN1mORQGAcrmaPWYqeoQUv7na9s7n0rOgliYtRWOI0l9WJ8yQoF5NrAHTF48f3F0iMjRxHCwN00kNvfK7Gl
+      SPRING_MAIL_USERNAME: efimethod@gmail.com
+      SPRING_MAIL_PASSWORD: jsxf aldv zlhe jrjg
+    depends_on:
+      - postgres
+
+volumes:
+  pgdata:
