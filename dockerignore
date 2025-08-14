@@ -1,6 +1,5 @@
-target
+target/
 .git
 .gitignore
 README.md
-application.properties
-.env
+node_modules
