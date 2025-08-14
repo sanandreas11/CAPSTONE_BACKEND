@@ -1,12 +1,17 @@
-# Fase 1: build del jar
-FROM maven:3.9.4-eclipse-temurin-17 AS builder
-WORKDIR /app
-COPY . .
-RUN mvn clean package -DskipTests
+# Usa un'immagine JDK come base
+FROM eclipse-temurin:17-jdk-alpine
 
-# Fase 2: esecuzione del jar
-FROM eclipse-temurin:17
+# Crea una directory per l'app
 WORKDIR /app
-COPY --from=builder /app/target/*.jar app.jar
-EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+
+# Copia i file del progetto
+COPY . .
+
+# Compila il progetto
+RUN ./mvnw clean package -DskipTests
+
+# Espone la porta 8081
+EXPOSE 8081
+
+# Esegue il jar
+CMD ["java", "-jar", "target/CAPSTONE_BACKEND-0.0.1-SNAPSHOT.jar"]
